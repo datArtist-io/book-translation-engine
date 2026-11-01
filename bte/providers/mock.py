@@ -91,7 +91,9 @@ class MockLLM:
                          model=self.model, provider=self.provider)
 
     def _task_translate(self, data: dict, bible: dict, target: str) -> dict:
-        glossary = list(bible.get("glossary", []))
+        glossary = list(bible.get("glossary", [])) + [
+            {"source": e.get("name", ""), "target": e.get("target", "")} for e in bible.get("entities", [])
+        ]
         segs = []
         for s in data.get("segments", []):
             text = pseudo_tagged(s["text"], target, glossary)
