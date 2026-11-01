@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Review · {{ p.name }}{% endblock %}
+{% block body %}
+<p><a href="/projects/{{ p.id }}">← {{ p.name }}</a> · chunk {{ position }} of {{ queue|length }} in the queue</p>
+
+<nav class="queue">
+  {% for c in queue[:60] %}
+    <a href="/projects/{{ p.id }}/review?chunk={{ c.id }}" class="q {{ 'cur' if c.id == chunk.id }} q-{{ c.state }}" title="risk {{ c.risk }}">{{ loop.index }}</a>
+  {% endfor %}
+</nav>
+
+<form method="post" action="/projects/{{ p.id }}/review/{{ chunk.id }}" class="card review" data-timer="seconds">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="seconds" value="0">
+  <h1>{% if chunk.state == 'needs_human' %}Needs a decision{% elif chunk.sampled %}Release sample{% else %}Approval{% endif %}
+    <span class="risk">risk {{ chunk.risk }}</span></h1>
+
+  {% if warnings %}<div class="alert"><strong>Please check:</strong><ul>{% for w in warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+    {% if need_confirm %}<label class="check"><input type="checkbox" name="confirm" value="yes"> I have checked these and the translation is correct</label>{% endif %}</div>{% endif %}
+
+  {% if chunk.reasons %}<div class="reasons"><strong>Why it is here:</strong><ul>{% for r in chunk.reasons[:12] %}<li>{{ r }}</li>{% endfor %}</ul></div>{% endif %}
+
+  {% for s in segs %}
+  <div class="pair">
+    <div class="src">
+      <div class="label">{{ src.name }} · {{ s.sid }}{% if s.heading_level is not none %} · heading{% endif %}</div>
+      <div class="text">{{ render_tagged(s.tagged, s.tag_labels) }}</div>
+    </div>
+    <div class="tgt" {% if tgt.rtl %}dir="rtl"{% endif %}>
+      <div class="label">{{ tgt.name }}</div>
+      <div class="text preview">{{ render_tagged(chunk.translations.get(s.sid, ''), s.tag_labels) }}</div>
+      <textarea name="t_{{ s.sid }}" rows="4" {% if tgt.rtl %}dir="rtl"{% endif %}>{{ drafts.get(s.sid) and editable(drafts.get(s.sid)) or editable(chunk.translations.get(s.sid, '')) }}</textarea>
+      {% if s.tag_labels %}<div class="legend">{% for tid, lab in s.tag_labels.items() %}<span><code>{{ tid }}</code> {{ lab }}</span>{% endfor %}</div>{% endif %}
+      {% if second and second.get('translations', {}).get(s.sid) %}
+      <details><summary>Second opinion ({{ second.get('provider') }})</summary><div class="text">{{ render_tagged(second['translations'][s.sid], s.tag_labels) }}</div></details>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  {% if findings %}
+  <h2>Findings on the current translation</h2>
+  <ul class="findings">{% for f in findings %}<li class="sev-{{ f.severity }}"><span>{{ f.severity }}</span> {{ f.layer }} {{ f.code }}{% if f.segment %} ({{ f.segment }}){% endif %}: {{ f.message }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if queries %}
+  <h2>Translator's questions</h2>
+  <ul>{% for q in queries %}<li><code>{{ q.get('id') }}</code> “{{ q.get('span') }}”: {{ q.get('reason') }}</li>{% endfor %}</ul>
+  {% endif %}
+
+  <div class="grid">
+    {% if chunk.sampled %}
+    <label>Major errors you found<input type="number" name="major" min="0" value="0"></label>
+    <label>Critical errors you found<input type="number" name="critical" min="0" value="0"></label>
+    {% endif %}
+    <label>Your name<input name="reviewer" value="editor" required></label>
+    <label>Note<input name="note"></label>
+  </div>
+  <details><summary>Add a glossary rule (fixes the same term across the whole book)</summary>
+    <div class="grid"><label>Source term<input name="rule_source"></label><label>Must be translated as<input name="rule_target"></label></div>
+  </details>
+  <p class="muted">Keep every tag such as &lt;g1&gt;…&lt;/g1&gt; or &lt;x2/&gt; exactly once, around the words with the same meaning. Tags carry bold, italics, links and objects into the printed file.</p>
+  <button type="submit">Approve{% if chunk.sampled %} and record findings{% endif %}</button>
+</form>
+{% endblock %}

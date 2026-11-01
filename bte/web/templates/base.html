@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Book Translation Engine{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css">
+{% block head %}{% endblock %}
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/">Book Translation Engine</a>
+  <span class="tagline">Accuracy first. Same file, same design, every word checked.</span>
+</header>
+{% if open_mode %}<div class="banner">No access token is set. Run on this computer only, or set BTE_ACCESS_TOKEN.</div>{% endif %}
+<main>{% block body %}{% endblock %}</main>
+<script src="/static/app.js"></script>
+</body>
+</html>

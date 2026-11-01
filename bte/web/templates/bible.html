@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Book Bible · {{ p.name }}{% endblock %}
+{% block body %}
+<p><a href="/projects/{{ p.id }}">← {{ p.name }}</a></p>
+<form method="post" action="/projects/{{ p.id }}/bible" class="card">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h1>Book Bible <span class="muted">v{{ version }}{% if approved %}, approved{% endif %}</span></h1>
+  <p class="muted">Every decision here is applied to the whole book and enforced by the checks. Fix it now: one correction here fixes every page.</p>
+
+  <label>Book summary<textarea name="book_summary" rows="4">{{ bible.get('book_summary', '') }}</textarea></label>
+  <label>Style guide<textarea name="style_guide" rows="3">{{ bible.get('style_guide', '') }}</textarea></label>
+
+  <h2>Glossary <span class="muted">source term → required {{ tgt.name }} rendering</span></h2>
+  <table class="edit" id="gloss">
+    <thead><tr><th>Source term</th><th>{{ tgt.name }}</th><th>Note</th></tr></thead>
+    <tbody>
+    {% for g in bible.get('glossary', []) + [{}, {}, {}] %}
+      <tr><td><input name="g_source_{{ loop.index0 }}" value="{{ g.get('source', '') }}"></td>
+          <td><input name="g_target_{{ loop.index0 }}" value="{{ g.get('target', '') }}"></td>
+          <td><input name="g_note_{{ loop.index0 }}" value="{{ g.get('note', '') }}"></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <button type="button" class="secondary add-row" data-table="gloss" data-prefix="g" data-fields="source,target,note">Add term</button>
+
+  <h2>Characters and names</h2>
+  <table class="edit" id="ents">
+    <thead><tr><th>Name</th><th>{{ tgt.name }} rendering</th><th>Gender</th><th>Form of address</th><th>Note</th></tr></thead>
+    <tbody>
+    {% for e in bible.get('entities', []) + [{}, {}] %}
+      <tr><td><input name="e_name_{{ loop.index0 }}" value="{{ e.get('name', '') }}"></td>
+          <td><input name="e_target_{{ loop.index0 }}" value="{{ e.get('target', '') }}"></td>
+          <td><input name="e_gender_{{ loop.index0 }}" value="{{ e.get('gender', '') }}"></td>
+          <td><input name="e_address_{{ loop.index0 }}" value="{{ e.get('address', '') }}"></td>
+          <td><input name="e_note_{{ loop.index0 }}" value="{{ e.get('note', '') }}"></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <button type="button" class="secondary add-row" data-table="ents" data-prefix="e" data-fields="name,target,gender,address,note">Add name</button>
+
+  {% if bible.get('cultural_decisions') %}
+  <h2>Cultural references</h2>
+  <ul>{% for c in bible.get('cultural_decisions') %}<li><strong>{{ c.get('text') }}</strong>: {{ c.get('decision') }} {{ c.get('note') }}</li>{% endfor %}</ul>
+  {% endif %}
+
+  <label class="short">Approved by<input name="reviewer" value="editor" required></label>
+  <button type="submit">Approve and start translation</button>
+</form>
+{% endblock %}

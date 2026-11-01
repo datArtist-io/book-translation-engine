@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="card">
+  <h1>New translation</h1>
+  <form method="post" action="/projects" enctype="multipart/form-data" class="grid">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Document (.docx)<input type="file" name="file" accept=".docx" required></label>
+    <label>From<input name="source" list="langs" value="en" required></label>
+    <label>Into<input name="target" list="langs" placeholder="yo, ha, ig, fr, zh…" required></label>
+    <datalist id="langs">{% for code, name in languages %}<option value="{{ code }}">{{ name }}</option>{% endfor %}</datalist>
+    <button type="submit">Start</button>
+  </form>
+  <p class="muted">Any of {{ languages|length }} languages. The output comes back as the same .docx with the same formatting. Languages without strong machine support are delivered as a draft for a native editor until reviewed.</p>
+</section>
+
+<section class="card">
+  <h2>Projects</h2>
+  {% if projects %}
+  <table>
+    <thead><tr><th>Book</th><th>Languages</th><th>Tier</th><th>Stage</th><th>Updated</th></tr></thead>
+    <tbody>
+    {% for p in projects %}
+      <tr>
+        <td><a href="/projects/{{ p.id }}">{{ p.name }}</a></td>
+        <td>{{ p.source_lang }} → {{ p.target_lang }}</td>
+        <td><span class="tier t{{ p.tier }}">{{ p.tier }}</span></td>
+        <td><span class="stage s-{{ p.stage }}">{{ p.stage.replace('_', ' ') }}</span></td>
+        <td class="muted">{{ p.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="muted">No projects yet.</p>{% endif %}
+</section>
+{% endblock %}

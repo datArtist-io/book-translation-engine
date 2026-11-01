@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}QA report · {{ project.name }}{% endblock %}
+{% block body %}
+<p><a href="/projects/{{ project.id }}">← {{ project.name }}</a></p>
+<article class="card report">
+  <h1>Quality assurance report</h1>
+  <p class="meta">{{ project.name }} · {{ src.name }} → {{ tgt.name }} · tier {{ project.tier }} · source SHA-256 <code>{{ project.source_sha256[:16] }}…</code></p>
+
+  <h2>Release</h2>
+  <p><strong>{{ 'VERIFIED' if release.get('releasable') else 'NOT YET RELEASABLE' }}</strong>. {{ release.get('message', '') }}</p>
+  {% if release.get('upper_bound') is not none %}
+  <p>Release sample: {{ release.get('sentences') }} randomly sampled sentences reviewed by a native editor; {{ release.get('major') }} major and {{ release.get('critical') }} critical errors; the true major-error rate is below {{ '%.2f' % (100 * release.get('upper_bound')) }}% per sentence with 95% confidence (limit {{ '%.1f' % (100 * release.get('target')) }}%).</p>
+  {% endif %}
+  {% set le = release.get('last_export') %}
+  {% if le %}<p>Last export: <code>{{ le.file }}</code> ({{ le.label }}). Fidelity gate: {{ le.fidelity.translated_text_matches }} translated paragraphs match the approved text, {{ le.fidelity.formatting_matches }} keep their formatting, {{ le.fidelity.untouched_paragraphs_identical }} untranslated paragraphs identical{% if le.fidelity.source_pages %}; rendered {{ le.fidelity.source_pages }} → {{ le.fidelity.output_pages }} pages{% endif %}.</p>{% endif %}
+
+  <h2>Chunks</h2>
+  <table><tbody>
+    <tr><th>Total</th><td>{{ chunks_total }}</td></tr>
+    {% for k, v in states.items() %}<tr><th>{{ k.replace('_', ' ') }}</th><td>{{ v }}</td></tr>{% endfor %}
+    <tr><th>Final attempt by rung</th><td>{% for k, v in rungs.items() %}{{ k }}: {{ v }}{% if not loop.last %}, {% endif %}{% endfor %}</td></tr>
+    <tr><th>Average judge score</th><td>{{ avg_judge if avg_judge is not none else 'n/a' }}</td></tr>
+    <tr><th>Judged by a different model family</th><td>{{ '%.0f%%' % (100 * independent_judge_share) if independent_judge_share is not none else 'n/a' }}</td></tr>
+  </tbody></table>
+
+  <h2>Verification layers</h2>
+  <table><thead><tr><th>Layer</th><th>What it checks</th><th>Status</th></tr></thead><tbody>
+  {% for name, what, status in layers %}<tr><td>{{ name }}</td><td>{{ what }}</td><td class="st-{{ status }}">{{ status }}</td></tr>{% endfor %}
+  </tbody></table>
+
+  <h2>Problems caught (all attempts)</h2>
+  {% if findings %}
+  <table><thead><tr><th>Layer</th><th>Check</th><th>Severity</th><th>Count</th></tr></thead><tbody>
+  {% for (layer, code, sev), n in findings[:40] %}<tr><td>{{ layer }}</td><td>{{ code }}</td><td class="sev-{{ sev }}">{{ sev }}</td><td>{{ n }}</td></tr>{% endfor %}
+  </tbody></table>
+  {% else %}<p class="muted">None.</p>{% endif %}
+
+  <h2>Human review</h2>
+  <p>{{ reviews }} review(s), {{ edits }} with edits{% if reviewers %}, by {{ reviewers|join(', ') }}{% endif %}.{% if avg_tte %} Average Time to Edit: {{ avg_tte }} s per chunk.{% endif %}</p>
+  <p>Book Bible v{{ bible_version }} approved by {{ bible_approved_by }}.</p>
+
+  <h2>Provenance</h2>
+  <table><tbody>{% for k, v in models.items() %}<tr><th>{{ k }}</th><td><code>{{ v }}</code></td></tr>{% endfor %}
+  <tr><th>Model calls</th><td>{{ usage.get('calls', 0) }} ({{ usage.get('cache_hits', 0) }} replayed from cache)</td></tr>
+  <tr><th>Tokens</th><td>{{ '{:,}'.format(usage.get('tokens', 0)) }}</td></tr></tbody></table>
+
+  {% if warnings %}<h2>Notes</h2><ul>{% for w in warnings %}<li>{{ w }}</li>{% endfor %}</ul>{% endif %}
+</article>
+{% endblock %}

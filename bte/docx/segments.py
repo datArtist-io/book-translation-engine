@@ -96,7 +96,7 @@ class TagSpec:
     kind: str  # "g" | "k" | "x"
     label: str
     rpr: etree._Element | None = None  # g: run properties
-    shell: etree._Element | None = None  # k: wrapper element without content
+    skeleton: etree._Element | None = None  # k: wrapper element without content
     content_path: str | None = None  # k: "self" or "sdtContent"
     objects: list[tuple[etree._Element, etree._Element | None, str]] = field(default_factory=list)
     # x: (element, run properties, level "run"|"para")
@@ -252,7 +252,7 @@ def _build_tagged(reader: _ParagraphReader) -> tuple[str, dict[str, TagSpec], et
             flush_x()
             tid = next_id("k")
             shell, path, wname = reader.wrappers[wid]
-            specs[tid] = TagSpec("k", label=_wrapper_label(shell, wname), shell=shell, content_path=path, key=wname)
+            specs[tid] = TagSpec("k", label=_wrapper_label(shell, wname), skeleton=shell, content_path=path, key=wname)
             wrapper_tag[wid] = tid
             out.append(f"<{tid}>")
             open_chain.append(wid)
@@ -504,7 +504,7 @@ def rebuild_paragraph(handle: _Handle, tagged: str, lang: LanguageInfo | None) -
             if spec.kind == "g":
                 fmt.append((tok.value, spec.rpr))
             else:
-                shell = copy.deepcopy(spec.shell)
+                shell = copy.deepcopy(spec.skeleton)
                 containers[-1].append(shell)
                 inner = shell.find(w("sdtContent")) if spec.content_path == "sdtContent" else shell
                 containers.append(inner if inner is not None else shell)

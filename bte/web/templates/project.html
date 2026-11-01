@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block head %}{% if busy or p.stage in ('bible_draft', 'translating') %}<meta http-equiv="refresh" content="5">{% endif %}{% endblock %}
+{% block title %}{{ p.name }}{% endblock %}
+{% block body %}
+<p><a href="/">← Projects</a></p>
+<section class="card">
+  <h1>{{ p.name }}</h1>
+  <p class="meta">{{ src.name }} → {{ tgt.name }} · tier <span class="tier t{{ p.tier }}">{{ p.tier }}</span> ·
+    {{ 'statistical release sample' if p.review_policy == 'sample' else 'full native-editor review' }}</p>
+  <p><span class="stage s-{{ p.stage }}">{{ p.stage.replace('_', ' ') }}</span> {{ p.stage_detail }}</p>
+  {% if busy %}<p class="muted">Working… this page refreshes automatically.</p>{% endif %}
+
+  {% if total %}
+  <div class="progress">
+    {% for state in ['approved', 'verified', 'needs_human', 'pending'] %}
+      {% set n = states.get(state, 0) %}
+      {% if n %}<div class="bar b-{{ state }}" data-flex="{{ n }}">{{ n }} {{ state.replace('_', ' ') }}</div>{% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="actions">
+    {% if p.stage == 'bible_review' %}<a class="button" href="/projects/{{ p.id }}/bible">Review and approve the Book Bible</a>{% endif %}
+    {% if p.stage in ('review', 'releasable', 'exported') and queue %}<a class="button" href="/projects/{{ p.id }}/review">Review {{ queue }} chunk(s)</a>{% endif %}
+    {% if p.stage in ('review', 'releasable', 'exported') %}
+      <form method="post" action="/projects/{{ p.id }}/export" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        {% if p.stage in ('releasable', 'exported') %}
+          <button type="submit">Download verified .docx</button>
+        {% else %}
+          <input type="hidden" name="draft" value="yes"><button type="submit" class="secondary">Download draft .docx</button>
+        {% endif %}
+      </form>
+      <a class="button secondary" href="/projects/{{ p.id }}/report">QA report</a>
+    {% endif %}
+    {% if p.stage == 'paused' %}
+      <form method="post" action="/projects/{{ p.id }}/resume" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit">Resume</button></form>
+    {% endif %}
+  </div>
+</section>
+
+{% if p.release and p.release.get('message') %}
+<section class="card">
+  <h2>Release status</h2>
+  <p>{{ p.release.get('message') }}</p>
+  {% if p.release.get('upper_bound') is not none %}
+  <p class="muted">Sample: {{ p.release.get('sentences') }} sentences, {{ p.release.get('major') }} major and {{ p.release.get('critical') }} critical errors; 95% upper bound {{ '%.2f' % (100 * p.release.get('upper_bound')) }}% against a limit of {{ '%.1f' % (100 * p.release.get('target')) }}%.</p>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if p.warnings %}
+<section class="card warn">
+  <h2>Notes about this file</h2>
+  <ul>{% for w in p.warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% endblock %}
