@@ -151,3 +151,10 @@ def test_sentence_split_and_omission_detection():
            "Ìdílé rẹ̀ jẹun díẹ̀ ju ti tẹ́lẹ̀ lọ.")
     issues = coverage_issues(src, tgt)
     assert issues["omitted"], issues
+
+
+def test_cjk_length_not_falsely_flagged():
+    zh = get_language("zh")
+    f = gates.check_segment("s", "The traders met at the river before the market opened in the morning.",
+                            "商人们在早上市场开门前在河边见面。", EN, zh, [])
+    assert not any(x.code == "length" for x in f), f

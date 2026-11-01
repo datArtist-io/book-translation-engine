@@ -152,3 +152,15 @@ def test_release_math():
     assert decide(300, 0, 0, 0.01).passed
     assert not decide(300, 0, 1, 0.01).passed
     assert not decide(50, 0, 0, 0.01).passed
+
+
+def test_sample_does_not_grow_on_rerun(tmp_path):
+    svc = make_service(tmp_path, BTE_TARGET_MAJOR_RATE=0.2)
+    pid = run_to_review(svc, make_docx(long_body(60)), "fr")
+    with svc.store.session() as db:
+        first = sorted(c.id for c in db.query(Chunk).filter_by(project_id=pid) if c.sampled)
+    svc.after_translation(pid)
+    svc.after_translation(pid)
+    with svc.store.session() as db:
+        again = sorted(c.id for c in db.query(Chunk).filter_by(project_id=pid) if c.sampled)
+    assert first == again

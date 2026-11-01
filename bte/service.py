@@ -374,14 +374,16 @@ class Service:
                     c.state = "needs_human"
                 c.reasons = list(c.reasons or []) + [f.message for f in fs]
             if p.review_policy == "sample":
-                items = []
-                for c in chunks:
-                    if c.state == "verified" and not c.sampled:
-                        n = sum(len(split_sentences(T.plain(seg_text[s]))) for s in c.sids)
-                        items.append(SampleItem(c.id, c.chapter, n))
-                needed = required_sentences(self.settings.target_major_rate)
-                for cid in draw_sample(items, needed, seed=pid):
-                    by_id[cid].sampled = True
+                def sentences(c: Chunk) -> int:
+                    return sum(len(split_sentences(T.plain(seg_text[s]))) for s in c.sids)
+
+                already = sum(sentences(c) for c in chunks if c.sampled)
+                needed = required_sentences(self.settings.target_major_rate) - already
+                if needed > 0:  # top up only; re-runs never grow an existing sample
+                    items = [SampleItem(c.id, c.chapter, sentences(c)) for c in chunks
+                             if c.state == "verified" and not c.sampled]
+                    for cid in draw_sample(items, needed, seed=pid):
+                        by_id[cid].sampled = True
             p.stage = "review"
             p.stage_detail = self._review_summary(p, chunks)
         self.store.log(pid, "system", "translation_finished")

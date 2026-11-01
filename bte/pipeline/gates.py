@@ -155,6 +155,10 @@ def check_segment(sid: str, source_tagged: str, target_tagged: str, src: Languag
     if len(src_plain) >= 20:
         ratio = len(tgt_plain) / max(len(src_plain), 1)
         lo, hi = (0.25, 3.0) if expansion is None else (expansion * 0.45, expansion * 2.2)
+        if tgt.script in {"Hans", "Hant", "Jpan", "Kore", "Hang"} and expansion is None:
+            lo = 0.1  # logographic and syllabic scripts are far shorter in characters
+        if src.script in {"Hans", "Hant", "Jpan", "Kore", "Hang"} and expansion is None:
+            hi = 8.0
         if not lo <= ratio <= hi:
             out.append(Finding("L0", "length", "major",
                                f"Length ratio {ratio:.2f} is outside the expected range {lo:.2f}-{hi:.2f}.", sid,
